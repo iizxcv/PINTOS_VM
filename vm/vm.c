@@ -5,6 +5,9 @@
 #include "threads/malloc.h"
 #include "vm/inspect.h"
 
+static unsigned page_hash(const struct hash_elem *p_, void *aux UNUSED);
+static bool page_less(const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED);
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void vm_init(void) {
@@ -37,8 +40,8 @@ static bool vm_do_claim_page(struct page *page);
 static struct frame *vm_evict_frame(void);
 
 /* Create the pending page object with initializer. If you want to create a
-  page, do not create it directly and make it through this function or
-  `vm_alloc_page`. */
+ * page, do not create it directly and make it through this function or
+ * `vm_alloc_page`. */
 bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writable,
                                     vm_initializer *init, void *aux) {
     ASSERT(VM_TYPE(type) != VM_UNINIT)
@@ -61,8 +64,12 @@ err:
 struct page *spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
     struct page *page = NULL;
     /* TODO: Fill this function. */
-    
+    struct page p;
+    struct hash_elem *e;
 
+    p.va = va;
+    e = hash_find(&spt->pages, &p.hash_elem);
+    e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
     return page;
 }
 
@@ -70,7 +77,9 @@ struct page *spt_find_page(struct supplemental_page_table *spt UNUSED, void *va 
 bool spt_insert_page(struct supplemental_page_table *spt UNUSED, struct page *page UNUSED) {
     int succ = false;
     /* TODO: Fill this function. */
-
+    if (hash_insert(&spt->pages, &page->hash_elem) == 0) {
+        succ = true;
+    }
     return succ;
 }
 
@@ -121,7 +130,6 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED, bool us
     struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
     struct page *page = NULL;
     /* TODO: Validate the fault */
-    
     /* TODO: Your code goes here */
 
     return vm_do_claim_page(page);
@@ -156,7 +164,9 @@ static bool vm_do_claim_page(struct page *page) {
 }
 
 /* Initialize new supplemental page table */
-void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED) {}
+void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED) {
+    hash_init(&spt->pages, page_hash, page_less, NULL);
+}
 
 /* Copy supplemental page table from src to dst */
 bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
@@ -167,3 +177,20 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED) {
     /* TODO: Destroy all the supplemental_page_table hold by thread and
      * TODO: writeback all the modified contents to the storage. */
 }
+
+/* Returns a hash value for page p. */
+unsigned page_hash(const struct hash_elem *p_, void *aux UNUSED) {
+    const struct page *p = hash_entry(p_, struct page, hash_elem);
+    return hash_bytes(&p->va, sizeof p->va);
+}
+
+/* Returns true if page a precedes page b. */
+static bool page_less(const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED) {
+    const struct page *a = hash_entry(a_, struct page, hash_elem);
+    const struct page *b = hash_entry(b_, struct page, hash_elem);
+
+    return a->va < b->va;
+}
+
+/* Returns the page containing the given virtual address, or a null pointer if no such page exists.
+ */

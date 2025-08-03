@@ -92,7 +92,7 @@ struct page_operations {
   * 
   */
 struct supplemental_page_table {
-    struct hash spt_hash;
+    struct hash pages;
 
 
 };
