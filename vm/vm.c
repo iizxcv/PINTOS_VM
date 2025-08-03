@@ -61,22 +61,37 @@ err:
 }
 
 /* Find VA from spt and return page. On error, return NULL. */
+/**
+ * @brief va로 해시테이블을 순회하면서 맞는 page를 찾는 함수
+ * 
+ * @param spt 쓰레드의 공급페이지 테이블
+ * @param va 가상주소
+ * @return struct page* 
+ */
 struct page *spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
     struct page *page = NULL;
-    /* TODO: Fill this function. */
+    /* DO: Fill this function. */
     struct page p;
     struct hash_elem *e;
 
     p.va = va;
     e = hash_find(&spt->pages, &p.hash_elem);
-    e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
+    page = e != NULL ? hash_entry(e, struct page, hash_elem) : NULL;
     return page;
 }
 
 /* Insert PAGE into spt with validation. */
+/**
+ * @brief 할당예정인 page들 spt라는 명부에 등록하는 함수. - 여기 넣었다고 실제 할당된게 아님.
+ * 
+ * @param spt 공급 페이지 테이블
+ * @param page spt에 넣을 페이지
+ * @return true 
+ * @return false 
+ */
 bool spt_insert_page(struct supplemental_page_table *spt UNUSED, struct page *page UNUSED) {
     int succ = false;
-    /* TODO: Fill this function. */
+    /* DO: Fill this function. */
     if (hash_insert(&spt->pages, &page->hash_elem) == 0) {
         succ = true;
     }
@@ -106,9 +121,9 @@ static struct frame *vm_evict_frame(void) {
 }
 
 /* palloc() and get frame. If there is no available page, evict the page
- * and return it. This always return valid address. That is, if the user pool
- * memory is full, this function evicts the frame to get the available memory
- * space.*/
+  and return it. This always return valid address. That is, if the user pool
+  memory is full, this function evicts the frame to get the available memory
+  space.*/
 static struct frame *vm_get_frame(void) {
     struct frame *frame = NULL;
     /* TODO: Fill this function. */
@@ -179,12 +194,30 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED) {
 }
 
 /* Returns a hash value for page p. */
+/**
+ * @brief page를 가져와서 그 page에 주소값의 va와 va-size로 hashing 하는 함수
+ * 
+ * @param p_ 참조할 page 안에 들어가있는 멤버 hash_elem 
+ * @param aux
+ * @return unsigned 
+ */
 unsigned page_hash(const struct hash_elem *p_, void *aux UNUSED) {
     const struct page *p = hash_entry(p_, struct page, hash_elem);
     return hash_bytes(&p->va, sizeof p->va);
 }
 
+
+
 /* Returns true if page a precedes page b. */
+/**
+ * @brief  hash구조체 안에 들어가는; hash_func를 수행할 때 쓰는 page 비교 함수.
+ * 
+ * @param a_ a-page
+ * @param b_ b-page
+ * @param aux hash 에서 쓸 함수의 page 말고 어떠한 인자를 넣고 싶을때, 기본적으로 NULL
+ * @return true 
+ * @return false 
+ */
 static bool page_less(const struct hash_elem *a_, const struct hash_elem *b_, void *aux UNUSED) {
     const struct page *a = hash_entry(a_, struct page, hash_elem);
     const struct page *b = hash_entry(b_, struct page, hash_elem);
